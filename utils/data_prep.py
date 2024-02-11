@@ -31,8 +31,15 @@ class LADA(Dataset):
         out_manifest = []
         for itm in raw_manifest:
             file_id, _ = os.path.splitext(itm["file"])
-            out_manifest.append([file_id, itm["orig_text"], itm["orig_text_wo_stress"]])
+            text = self.clean_text(itm["orig_text_wo_stress"])
+            out_manifest.append([file_id, itm["orig_text"], text])
         return out_manifest
+
+    def clean_text(self, text: str):
+        text = text.replace("-", "")
+        text = text.replace("—", "")
+        text = text.strip()
+        return text
 
     def __len__(self):
         return len(self._flist)
@@ -64,7 +71,8 @@ def split_and_write_manifests(dataset, args):
     print(f"{len(train_idxs)=}")
     dataset_items = dataset._flist
     test_data, val_data, train_data = dict(), dict(), dict()
-    phonemizer = TextTokenizer()
+    phonemizer = TextTokenizer(language=args.lang)
+    unique_phones = set()
     for idx, itm in tqdm(enumerate(dataset_items)):
         file_id, raw_text, text = itm
         file_id = file_id + ".wav"
@@ -73,6 +81,7 @@ def split_and_write_manifests(dataset, args):
         duration = wav_obj.frames / wav_obj.samplerate
 
         phones = phonemizer(text)[0]
+        unique_phones.update(phones)
         phones = "|".join(phones)
 
         datapoint = {
@@ -104,9 +113,20 @@ def split_and_write_manifests(dataset, args):
         f.write(orjson.dumps(train_data, option=orjson.OPT_INDENT_2))
 
 
+    phone_map_path = args.data_root / "unique_text_tokens.k2symbols"
+    if not phone_map_path.exists():
+        unique_phones = list(unique_phones)
+        unique_phones.sort()
+        unique_phones = ["<eps>"] + unique_phones
+        with open(phone_map_path, "w") as f:
+            for idx, pho in enumerate(unique_phones):
+                f.write(f"{pho} {idx}\n")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="ljspeech")
+    parser.add_argument("--lang", type=str, default="en-us", choices=["uk", "en-us"])
     # fmt: off
     parser.add_argument("--data_root", type=Path, default="./datasets/ljspeech-training-data")
     # fmt: on

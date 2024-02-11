@@ -110,6 +110,19 @@ PYTHONPATH=. python utils/get_tokens_speech_tokenizer.py \
     --ckpt_path ckpt/speechtokenizer/SpeechTokenizer.pt \
     --encoding_input datasets/ljspeech-training-data/audios \
     --encoding_output datasets/ljspeech-training-data/audios-speech-tokenizer
+
+```
+
+For phonemization of Ukrainian espeak-ng>=1.51 is necessary
+It's sufficient to build it and supply correct LD_LIBRARY_PATH, so that phonemizer will take the correct .so file.
+
+```
+export LD_LIBRARY_PATH=/home/taras/repos/espeak-ng/src/.libs:$LD_LIBRARY_PATH
+PYTHONPATH="." python utils/data_prep.py \
+--dataset lada \
+--data_root /home/taras/data/ua-corpus/dataset_lada_22khz \
+--lang uk
+
 ```
 
 ## T2S
