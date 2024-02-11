@@ -1,18 +1,56 @@
 import argparse
+import os
 from pathlib import Path
 
 import numpy as np
 import orjson
 import soundfile as sf
+from data.semantic_dataset import TextTokenizer
+from torch.utils.data import Dataset
 from torchaudio.datasets import LJSPEECH
 from tqdm import tqdm
 
-from data.semantic_dataset import TextTokenizer
 
-def split_and_write_manifests(args):
+def read_jsonl(f_path):
+    data = []
+    with open(f_path, "rb") as f:
+        for line in f:
+            data.append(orjson.loads(line))
+    return data
+
+
+class LADA(Dataset):
+    def __init__(self, data_root):
+        self.data_root = Path(data_root)
+        self._path = self.data_root / "accept"
+        self.manifest_path = self._path / "metadata.jsonl"
+        self._flist = self.process_manifest()
+
+    def process_manifest(self):
+        raw_manifest = read_jsonl(self.manifest_path)
+        out_manifest = []
+        for itm in raw_manifest:
+            file_id, _ = os.path.splitext(itm["file"])
+            out_manifest.append([file_id, itm["orig_text"], itm["orig_text_wo_stress"]])
+        return out_manifest
+
+    def __len__(self):
+        return len(self._flist)
+
+
+def load_dataset(args):
     data_root = args.data_root
-    dataset = LJSPEECH(data_root, download=True)
-    np.random.seed(42)
+    if args.dataset == "ljspeech":
+        dataset = LJSPEECH(data_root, download=True)
+    elif args.dataset == "lada":
+        dataset = LADA(data_root)
+    else:
+        raise ValueError
+    return dataset
+
+
+def split_and_write_manifests(dataset, args):
+    data_root = args.data_root
     dataset_idxs = np.arange(start=0, stop=len(dataset))
     np.random.shuffle(dataset_idxs)
     test_idxs, val_idxs, train_idxs = (
@@ -68,11 +106,16 @@ def split_and_write_manifests(args):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", type=str, default="ljspeech")
+    # fmt: off
     parser.add_argument("--data_root", type=Path, default="./datasets/ljspeech-training-data")
+    # fmt: on
     args = parser.parse_args()
     args.data_root.mkdir(exist_ok=True)
 
-    split_and_write_manifests(args)
+    np.random.seed(42)
+    dataset = load_dataset(args)
+    split_and_write_manifests(dataset, args)
 
 
 if __name__ == "__main__":
