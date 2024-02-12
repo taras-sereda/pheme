@@ -19,6 +19,7 @@ import multiprocessing
 import os
 import pathlib
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
 
 import torch
 from modules.speech_tokenizer import SpeechTokenizer
@@ -34,7 +35,8 @@ logging.basicConfig(level=logging.DEBUG)
 def main(args):
     n_gpus = torch.cuda.device_count()
     n_workers = n_gpus * 4
-    filenames = os.listdir(args.encoding_input)
+    encoding_input = Path(args.encoding_input)
+    filenames = [f_path.name for f_path in encoding_input.glob("*.wav")]
     chunk_size = (len(filenames) + n_workers - 1) // n_workers
     futures = []
     with ProcessPoolExecutor() as executor:

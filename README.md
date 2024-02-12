@@ -120,7 +120,7 @@ It's sufficient to build it and supply correct LD_LIBRARY_PATH, so that phonemiz
 export LD_LIBRARY_PATH=/home/taras/repos/espeak-ng/src/.libs:$LD_LIBRARY_PATH
 PYTHONPATH="." python utils/data_prep.py \
 --dataset lada \
---data_root /home/taras/data/ua-corpus/dataset_lada_22khz \
+--data_root /home/taras/data/ua-corpus/dataset_lada_16khz \
 --lang uk
 
 ```
