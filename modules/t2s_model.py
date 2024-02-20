@@ -43,12 +43,13 @@ def compute_custom_metrics(eval_prediction: EvalPrediction):
 class T2S(nn.Module):
     def __init__(self, hp):
         super().__init__()
-        self.text_tokens_file = "ckpt/unique_text_tokens.k2symbols"
+        self.text_tokens_file = hp.text_tokens_file
         self.collater = get_text_semantic_token_collater(self.text_tokens_file)
         self.model_size = hp.model_size
         self.vocab_size = len(self.collater.idx2token)
         self.config = self._define_model_config(self.model_size)
         
+        print(f"{self.vocab_size = }")
         print(f"{self.config = }")
         self.t2s = T5ForConditionalGeneration(self.config)
 

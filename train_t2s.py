@@ -42,6 +42,10 @@ def parse_args():
         "--eval_path", type=str, 
         default="datasets/giga-training-data/dev.json"
     )
+    parser.add_argument(
+        "--text_tokens_file", type=str,
+        default="ckpt/unique_text_tokens.k2symbols"
+    )
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
         "--model_size", choices=["test", "tiny", "t5small", "large", "Large"], 

@@ -120,7 +120,7 @@ It's sufficient to build it and supply correct LD_LIBRARY_PATH, so that phonemiz
 export LD_LIBRARY_PATH=/home/taras/repos/espeak-ng/src/.libs:$LD_LIBRARY_PATH
 PYTHONPATH="." python utils/data_prep.py \
 --dataset lada \
---data_root /home/taras/data/ua-corpus/dataset_lada_16khz \
+--data_root datasets/lada-training-data \
 --lang uk
 
 ```
@@ -128,13 +128,14 @@ PYTHONPATH="." python utils/data_prep.py \
 ## T2S
 
 ```
-TRAIN_MANIFEST="./datasets/ljspeech-training-data/train.json"
-DEV_MANIFEST="./datasets/ljspeech-training-data/dev.json"
-OUT_DIR="./experiments/t2s-ljspeech"
+TRAIN_MANIFEST="./datasets/lada-training-data/train.json"
+DEV_MANIFEST="./datasets/lada-training-data/dev.json"
+TEXT_TOKENS_PATH="./datasets/lada-training-data/unique_text_tokens.k2symbols"
 
-OUT_DIR="/home/taras/experiments/t2s-ljspeech"
+OUT_DIR="/home/taras/experiments/t2s-lada"
 python train_t2s.py --metapath "${TRAIN_MANIFEST}" \
   --val_metapath "${DEV_MANIFEST}" \
+  --text_tokens_file "${TEXT_TOKENS_PATH}" \
   --output_dir "${OUT_DIR}" \
   --model_size tiny --batch_size 64 \
   --nworkers 12 --warmup_steps 10000 \

@@ -53,6 +53,7 @@ def parse_arguments():
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_k", type=int, default=210)
     parser.add_argument("--voice", type=str, default="male_voice")
+    parser.add_argument("--lang", type=str, default="en-us")
 
     return parser.parse_args()
 
@@ -64,7 +65,7 @@ class PhemeClient():
         self.target_sample_rate = args.target_sample_rate
         self.featuredir = Path(args.featuredir).expanduser()
         self.collater = get_text_semantic_token_collater(args.text_tokens_file)
-        self.phonemizer = TextTokenizer()
+        self.phonemizer = TextTokenizer(language=args.lang)
     
         self.load_manifest(args.manifest_path)
 
@@ -103,12 +104,11 @@ class PhemeClient():
 
         return np.array(semantic_tokens)
 
-    def infer_text(self, text, voice, sampling_config):
+    def infer_text(self, text, voice, sampling_config, remove_prompt=True):
         semantic_prompt = np.load(self.args.featuredir + "/audios-speech-tokenizer/semantic/" + f"{voice}.npy")  # noqa
         phones_seq = self.phonemizer(text)[0]
         input_ids = self.collater([phones_seq])
         input_ids = input_ids.type(torch.IntTensor).to(device)
-
         labels = [str(lbl) for lbl in semantic_prompt]
         labels = self.collater([labels])[:, :-1]
         decoder_input_ids = labels.to(device).long()
@@ -127,8 +127,9 @@ class PhemeClient():
         output_semantic = self.lazy_decode(
             output_ids[0], self.collater.idx2token)
 
-        # remove the prompt
-        return output_semantic[len(semantic_prompt):].reshape(1, -1)
+        if remove_prompt:
+            output_semantic = output_semantic[len(semantic_prompt):]
+        return rearrange(output_semantic, 'f -> 1 f')
 
     def _load_speaker_emb(self, element_id_prompt):
         wav, _ = sf.read(self.featuredir / element_id_prompt)

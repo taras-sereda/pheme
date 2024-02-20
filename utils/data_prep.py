@@ -9,7 +9,7 @@ from data.semantic_dataset import TextTokenizer
 from torch.utils.data import Dataset
 from torchaudio.datasets import LJSPEECH
 from tqdm import tqdm
-
+from symbol_table import SymbolTable
 
 def read_jsonl(f_path):
     data = []
@@ -22,8 +22,8 @@ def read_jsonl(f_path):
 class LADA(Dataset):
     def __init__(self, data_root):
         self.data_root = Path(data_root)
-        self._path = self.data_root / "accept"
-        self.manifest_path = self._path / "metadata.jsonl"
+        self._path = self.data_root / "audios"
+        self.manifest_path = self.data_root / "metadata.jsonl"
         self._flist = self.process_manifest()
 
     def process_manifest(self):
@@ -73,6 +73,7 @@ def split_and_write_manifests(dataset, args):
     test_data, val_data, train_data = dict(), dict(), dict()
     phonemizer = TextTokenizer(language=args.lang)
     unique_phones = set()
+    train_dur, val_dur, test_dur = 0, 0, 0
     for idx, itm in tqdm(enumerate(dataset_items)):
         file_id, raw_text, text = itm
         file_id = file_id + ".wav"
@@ -94,10 +95,17 @@ def split_and_write_manifests(dataset, args):
         }
         if idx in test_idxs:
             test_data.update(datapoint)
+            test_dur += duration
         elif idx in val_idxs:
             val_data.update(datapoint)
+            val_dur += duration
         elif idx in train_idxs:
             train_data.update(datapoint)
+            train_dur += duration
+
+    print(f"{train_dur/60/60 = } hours")
+    print(f"{val_dur/60/60 = } hours")
+    print(f"{test_dur/60/60 = } hours")
 
     test_manifest_path = data_root / "test.json"
     val_manifest_path = data_root / "dev.json"
@@ -117,10 +125,16 @@ def split_and_write_manifests(dataset, args):
     if not phone_map_path.exists():
         unique_phones = list(unique_phones)
         unique_phones.sort()
-        unique_phones = ["<eps>"] + unique_phones
-        with open(phone_map_path, "w") as f:
-            for idx, pho in enumerate(unique_phones):
-                f.write(f"{pho} {idx}\n")
+        # <eps> is always included by default
+        # add all other symbols(phones)
+        symbol_table = SymbolTable()
+        for pho in unique_phones:
+            symbol_table.add(pho)
+        symbol_table.to_file(phone_map_path)
+
+        #with open(phone_map_path, "w") as f:
+        #    for idx, pho in enumerate(unique_phones):
+        #        f.write(f"{pho} {idx}\n")
 
 
 def main():
