@@ -9,7 +9,9 @@ from data.semantic_dataset import TextTokenizer
 from torch.utils.data import Dataset
 from torchaudio.datasets import LJSPEECH
 from tqdm import tqdm
+
 from symbol_table import SymbolTable
+
 
 def read_jsonl(f_path):
     data = []
@@ -120,7 +122,6 @@ def split_and_write_manifests(dataset, args):
     with open(train_manifest_path, "wb") as f:
         f.write(orjson.dumps(train_data, option=orjson.OPT_INDENT_2))
 
-
     phone_map_path = args.data_root / "unique_text_tokens.k2symbols"
     if not phone_map_path.exists():
         unique_phones = list(unique_phones)
@@ -131,10 +132,6 @@ def split_and_write_manifests(dataset, args):
         for pho in unique_phones:
             symbol_table.add(pho)
         symbol_table.to_file(phone_map_path)
-
-        #with open(phone_map_path, "w") as f:
-        #    for idx, pho in enumerate(unique_phones):
-        #        f.write(f"{pho} {idx}\n")
 
 
 def main():
